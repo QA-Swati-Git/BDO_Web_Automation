@@ -1,0 +1,63 @@
+# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Java CI with Maven
+on:
+workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Choose Repo Branch:'
+        required: true
+           default:'main'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+     - name: Get current Timestamp
+        id: current_TimeStamp
+        run: |
+          echo "current_TimeStamp=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV      
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.branch }}
+    - name: Set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+    - name: Build with Maven
+      run: mvn -B package --file pom.xml
+      
+    - name: Generate HTML Report
+        if: always()
+        uses: maierj/fastlane-action@v1.4.0
+        env:
+          MATCH_KEYCHAIN_NAME: ${{ secrets.MATCH_KEYCHAIN_NAME }}
+          MATCH_KEYCHAIN_PASSWORD: ${{ env.MATCH_KEYCHAIN_PASSWORD }}
+        with:
+          lane: generate_html_report
+          skip-tracking: false       - name: Upload test results report
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+      - name: BDO_iOS_ui_tests_results_${{ github.event.inputs.device }}_${{ github.event.inputs.os }}_${{ github.event.inputs.testplan }}_${{ env.current_TimeStamp}}
+          path: uitest-results       - name: Send Test Report to Slack Messaging App
+        if: always()
+        uses: maierj/fastlane-action@v1.4.0
+        env:
+          MATCH_KEYCHAIN_NAME: ${{ secrets.MATCH_KEYCHAIN_NAME }}
+          MATCH_KEYCHAIN_PASSWORD: ${{ env.MATCH_KEYCHAIN_PASSWORD }}
+        with:
+          lane: send_uitestreport_to_slack
+          skip-tracking: false
+
+
