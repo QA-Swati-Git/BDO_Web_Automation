@@ -13,7 +13,7 @@ workflow_dispatch:
       branch:
         description: 'Choose Repo Branch:'
         required: true
-           default:'main'
+           default:["main"]
 
 jobs:
   build:
